@@ -1,4 +1,5 @@
 #include "AutoWOL.h"
+#include "Version.h"
 
 #include <iostream>
 #include <boost/program_options/options_description.hpp>
@@ -27,7 +28,7 @@ int main(int argc, char** argv) {
   po::store(po::parse_command_line(argc, argv, opts), var);
   po::store(po::command_line_parser(argc, argv).options(opts).positional(p).run(), var);
   if(!var.count("help") && var.count("version")) {
-    std::cout << "autoWOL " << VERSION << std::endl;
+    std::cout << "autoWOL " << version << std::endl;
     return 0;
   }
   if(!var.count("targets") || var.count("help")) {

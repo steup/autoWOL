@@ -3,19 +3,17 @@ DESTDIR?=/usr
 OBJECTS:=main AutoWOL
 LIBS:=boost_program_options
 DIRS:=bin build
-OBJECTS:=$(addprefix build/, $(addsuffix .o, ${OBJECTS}))
+OBJECTS:=$(addprefix build/, $(addsuffix .o, ${OBJECTS} Version))
 LIBS:=$(addprefix -l, ${LIBS})
 LDPATHS:=$(addprefix -L, ${LDPATHS})
 
 COMMIT:=$(shell git rev-parse HEAD)
 VERSION:=$(shell git describe --exact-match --tags ${COMMIT})
 ifeq (${.SHELLSTATUS},0)
-	VERSION:="\"${VERSION}\""
+	GEN_VERSION:=@echo "const char* version = \"${VERSION}\";" >> src/Version.cpp
 else
-	VERSION:="\"git(${COMMIT})\""
+	GEN_VERSION:=@echo "const char* version = \"git(${COMMIT}\";" >> src/Version.cpp
 endif
-
-CXXFLAGS:=${CXXFLAGS} -DVERSION=${VERSION} -std=c++11
 
 .PHONY: all install clean
 
@@ -27,6 +25,11 @@ ${DIRS}: %:
 bin/autoWOL: ${OBJECTS} | bin
 	@echo "Linking autoWol"
 	@${CXX} ${LDFLAGS} -o $@ $^ ${LDPATHS} ${LIBS}
+
+src/Version.cpp:
+	@echo Generating $@
+	${GEN_VERSION}
+
 build/%.o: src/%.cpp | build
 	@echo "Building $<"
 	@${CXX} ${CXXFLAGS} ${INCLUDES} -c $< -o $@ -MT $@.d -MMD
