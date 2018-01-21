@@ -1,5 +1,8 @@
 DESTDIR?=/usr
 
+CXXFLAGS:=-O2 -gdwarf -flto=4 -fuse-linker-plugin
+LDFLAGS:=-O1 -flto=4 -fuse-linker-plugin
+
 OBJECTS:=main AutoWOL
 LIBS:=boost_program_options
 DIRS:=bin build
@@ -10,10 +13,10 @@ LDPATHS:=$(addprefix -L, ${LDPATHS})
 COMMIT:=$(shell git rev-parse HEAD)
 VERSION:=$(shell git describe --exact-match --tags ${COMMIT})
 ifeq (${.SHELLSTATUS},0)
-	GEN_VERSION:=@echo "const char* version = \"${VERSION}\";" >> src/Version.cpp
 else
-	GEN_VERSION:=@echo "const char* version = \"git(${COMMIT}\";" >> src/Version.cpp
+	VERSION:=git(${COMMIT}
 endif
+GEN_VERSION:=@echo "const char* version = \"${VERSION}\";" >> src/Version.cpp
 
 .PHONY: all install clean
 
@@ -25,6 +28,7 @@ ${DIRS}: %:
 bin/autoWOL: ${OBJECTS} | bin
 	@echo "Linking autoWol"
 	@${CXX} ${LDFLAGS} -o $@ $^ ${LDPATHS} ${LIBS}
+	@rm src/Version.cpp
 
 src/Version.cpp:
 	@echo Generating $@
