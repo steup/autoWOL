@@ -1,10 +1,10 @@
 DESTDIR?=/usr
 
-CXXFLAGS:=-O2 -gdwarf -flto=4 -fuse-linker-plugin
-LDFLAGS:=-O1 -flto=4 -fuse-linker-plugin
+CXXFLAGS:=-O2 -gdwarf -flto=4 -fuse-linker-plugin -pthread
+LDFLAGS:=-O1 -flto=4 -fuse-linker-plugin -pthread
 
-OBJECTS:=main AutoWOL
-LIBS:=boost_program_options
+OBJECTS:=main AutoWOL WOLTarget
+LIBS:=boost_program_options boost_system
 DIRS:=bin build
 OBJECTS:=$(addprefix build/, $(addsuffix .o, ${OBJECTS} Version))
 LIBS:=$(addprefix -l, ${LIBS})
