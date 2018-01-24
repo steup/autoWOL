@@ -3,10 +3,11 @@ DESTDIR?=/usr
 CXXFLAGS:=-O2 -gdwarf -flto=4 -fuse-linker-plugin -pthread
 LDFLAGS:=-O1 -flto=4 -fuse-linker-plugin -pthread
 
-OBJECTS:=main AutoWOL WOLTarget
+OBJECTS:=main AutoWOL WOLTarget Error
 LIBS:=boost_program_options boost_system
 DIRS:=bin build
 OBJECTS:=$(addprefix build/, $(addsuffix .o, ${OBJECTS} Version))
+DEPS:=$(addsuffix .d, ${OBJECTS})
 LIBS:=$(addprefix -l, ${LIBS})
 LDPATHS:=$(addprefix -L, ${LDPATHS})
 
@@ -45,3 +46,5 @@ install: bin/autoWOL
 clean:
 	@echo "Cleaning directories ${DIRS}"
 	@rm -rf ${DIRS}
+
+-include ${DEPS}

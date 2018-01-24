@@ -1,48 +1,94 @@
 #include "AutoWOL.h"
 #include "WOLTarget.h"
+#include "Error.h"
 
 #include <boost/asio/ip/address.hpp>
 #include <boost/asio/ip/udp.hpp>
+#include <boost/asio/system_timer.hpp>
+#include <boost/bind.hpp>
+
 
 #include <iostream>
 #include <utility>
 #include <map>
+#include <chrono>
 
 using namespace std;
 namespace ip = boost::asio::ip;
-
+namespace sys = boost::system;
+using namespace boost::placeholders;
+using namespace std::chrono;
 
 struct AutoWOLImpl {
+  bool mPedantic;
+  uint16_t mNfGroup;
   map<ip::address, WOLTarget> targets;
   boost::asio::io_service ioService;
+  boost::asio::system_timer mTimer;
 
-  AutoWOLImpl(const std::vector<std::string>& hosts, uint16_t nfGroup) {
-    std::cout << "handling the following targets:" << std::endl;
+  AutoWOLImpl(uint16_t nfGroup, bool pedantic)
+    : mPedantic(pedantic), mNfGroup(nfGroup), mTimer(ioService) {
+    //TODO netfilter link
+  }
+
+  void add(const string& host) {
     ip::udp::resolver resolver(ioService);
-    for(const auto& host: hosts) {
-      ip::udp::resolver::query q(host, string());
-      try {
-        ip::udp::resolver::iterator i=resolver.resolve(q);
-        for(;i!=ip::udp::resolver::iterator();i++ ) {
-          ip::address address = i->endpoint().address();
-          WOLTarget wolTarget(address, nfGroup);
-          targets.emplace(address, wolTarget);
-        }
-      } catch(...) {
-        cout << "Could not resolve " << host << ": ignoring!" << endl;
+    ip::udp::resolver::query q(host, string());
+    sys::error_code ec;
+    ip::udp::resolver::iterator i=resolver.resolve(q, ec);
+    if(ec) {
+      if(mPedantic)
+        BOOST_THROW_EXCEPTION(error::Error(ec) << error::Host(host.c_str()));
+      else
+        cout << ec.message() << " \"" << host << "\"" << endl;
+    } else
+    for(;i!=ip::udp::resolver::iterator();i++ ) {
+        ip::address address = i->endpoint().address();
+        WOLTarget wolTarget(address, mNfGroup);
+        targets.emplace(address, wolTarget);
       }
+  }
+
+  void log() const{
+    cout << "Handling the following targets on nfgroup " << mNfGroup << endl;
+    for(const auto& targetPair: targets)
+      cout << "\t" << targetPair.second << endl;
+  }
+
+  void trigger(const sys::error_code& ec) {
+    mTimer.expires_from_now(seconds(10));
+    error::check(ec);
+    log();
+    for(const auto& targetPair : targets) {
+      targetPair.second.wakeup();
     }
-    if(targets.empty()) {
-      throw std::runtime_error("No hosts resolved: exiting!");
+    mTimer.async_wait(boost::bind(&AutoWOLImpl::trigger, this, _1));
+  };
+
+  void run() {
+    trigger(error::error_code());
+    while(true) {
+      error::error_code ec;
+      ioService.run(ec);
+      error::check(ec);
     }
   }
+
 };
 
 
-AutoWOL::AutoWOL(const std::vector<std::string>& targets, uint16_t nfGroup)
-  : mImpl(new AutoWOLImpl(targets, nfGroup)) {
+AutoWOL::AutoWOL(uint16_t nfGroup, bool pedantic)
+  : mImpl(new AutoWOLImpl(nfGroup, pedantic)) {
 }
 
 AutoWOL::~AutoWOL() {
   delete mImpl;
+}
+
+void AutoWOL::add(const string& host) {
+  mImpl->add(host);
+}
+
+void AutoWOL::run() {
+  mImpl->run();
 }

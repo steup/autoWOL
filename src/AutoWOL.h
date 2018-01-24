@@ -10,6 +10,8 @@ class AutoWOL {
   private:
     AutoWOLImpl* mImpl;
   public:
-    AutoWOL(const std::vector<std::string>& targets, uint16_t nfGroup);
+    AutoWOL(uint16_t nfGroup, bool pedantic=false);
+    void add(const std::string& target);
     ~AutoWOL();
+    void run();
 };
