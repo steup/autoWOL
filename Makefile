@@ -3,7 +3,7 @@ DESTDIR?=/usr
 CXXFLAGS:=-O2 -gdwarf -flto=4 -fuse-linker-plugin -pthread
 LDFLAGS:=-O1 -flto=4 -fuse-linker-plugin -pthread
 
-OBJECTS:=main AutoWOL WOLTarget Error
+OBJECTS:=main AutoWOL WOLTarget WOLPacket Error
 LIBS:=boost_program_options boost_system
 DIRS:=bin build
 OBJECTS:=$(addprefix build/, $(addsuffix .o, ${OBJECTS} Version))
@@ -22,6 +22,7 @@ GEN_VERSION:=@echo "const char* version = \"${VERSION}\";" >> src/Version.cpp
 .PHONY: all install clean
 
 all: bin/autoWOL
+	@echo ${DEPS}
 
 ${DIRS}: %:
 	@mkdir $@
@@ -37,7 +38,7 @@ src/Version.cpp:
 
 build/%.o: src/%.cpp | build
 	@echo "Building $<"
-	@${CXX} ${CXXFLAGS} ${INCLUDES} -c $< -o $@ -MT $@.d -MMD
+	@${CXX} ${CXXFLAGS} ${INCLUDES} -c $< -o $@ -MF $@.d -MT $@.d -MMD
 
 install: bin/autoWOL
 	@echo "Installing autoWOL to ${DESTDIR}/bin/autoWOl"

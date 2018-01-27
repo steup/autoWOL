@@ -1,6 +1,9 @@
 #pragma once
 
-#include "boost/asio/ip/address.hpp"
+#include "WOLPacket.h"
+
+#include <boost/asio/ip/udp.hpp>
+#include <boost/asio/io_service.hpp>
 
 #include <string>
 #include <cstdlib>
@@ -8,13 +11,18 @@
 
 class WOLTarget {
   public:
-    using Address = boost::asio::ip::address;
+    using Socket = boost::asio::ip::udp::socket;
+    using Endpoint = Socket::endpoint_type;
   private:
-    Address mAddress;
+    Socket mSocket;
+    WOLPacket mPacket;
+    void notify(const boost::system::error_code& error,
+                std::size_t bytes_transferred);
   public:
-    WOLTarget(const Address& address, uint16_t nfGroup);
-    void wakeup() const;
-    const Address& address() const { return mAddress; }
+    WOLTarget(boost::asio::io_service& ios, const Socket::endpoint_type& ep, uint16_t nfGroup);
+    void wakeup();
+    Endpoint endpoint() const { return mSocket.remote_endpoint(); }
+    MACAddress macAddress() const { return mPacket.macAddress(); }
 };
 
 std::ostream& operator<<(std::ostream& o, const WOLTarget& target);

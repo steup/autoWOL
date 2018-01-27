@@ -33,7 +33,7 @@ struct AutoWOLImpl {
 
   void add(const string& host) {
     ip::udp::resolver resolver(ioService);
-    ip::udp::resolver::query q(host, string());
+    ip::udp::resolver::query q(host, "9");
     sys::error_code ec;
     ip::udp::resolver::iterator i=resolver.resolve(q, ec);
     if(ec) {
@@ -42,11 +42,9 @@ struct AutoWOLImpl {
       else
         cout << ec.message() << " \"" << host << "\"" << endl;
     } else
-    for(;i!=ip::udp::resolver::iterator();i++ ) {
-        ip::address address = i->endpoint().address();
-        WOLTarget wolTarget(address, mNfGroup);
-        targets.emplace(address, wolTarget);
-      }
+    for(;i!=ip::udp::resolver::iterator();i++ )
+        targets.emplace( i->endpoint().address(),
+                         WOLTarget(ioService, i->endpoint(), mNfGroup));
   }
 
   void log() const{
@@ -56,10 +54,10 @@ struct AutoWOLImpl {
   }
 
   void trigger(const sys::error_code& ec) {
-    mTimer.expires_from_now(seconds(10));
+    mTimer.expires_from_now(seconds(60));
     error::check(ec);
     log();
-    for(const auto& targetPair : targets) {
+    for(auto& targetPair : targets) {
       targetPair.second.wakeup();
     }
     mTimer.async_wait(boost::bind(&AutoWOLImpl::trigger, this, _1));

@@ -16,6 +16,6 @@ namespace error {
     Error(const boost::system::error_code& ec) : std::runtime_error(std::system_error(ec)) {}
   };
   struct HostTag {};
-  using Host = boost::error_info<HostTag, const char*>;
+  using Host = boost::error_info<HostTag, std::string>;
   void  check(const error_code& ec, bool pedantic=false);
 }
